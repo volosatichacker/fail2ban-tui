@@ -19,6 +19,15 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
+# Check if fail2ban-client is installed
+if ! command -v fail2ban-client &> /dev/null; then
+  echo -e "${RED}${BOLD}Ошибка:${NC} Утилита fail2ban-client не найдена."
+  echo -e "Пожалуйста, установите fail2ban на этом сервере перед запуском скрипта."
+  echo -e "Например, на Ubuntu/Debian: ${YELLOW}apt update && apt install -y fail2ban${NC}"
+  exit 1
+fi
+
+
 get_ip_info() {
   local ip=$1
   # Use curl to query ip-api.com, parse with jq if installed, or simple grep/sed
@@ -140,19 +149,19 @@ while true; do
   echo -e "\n${BOLD}${WHITE}Главное меню:${NC}"
   
   # Dynamic Jails Menu
-  local jails=$(fail2ban-client status | grep "Jail list:" | sed 's/`- Jail list:\t//' | tr -d ',')
-  local index=1
-  local jail_array=()
+  jails=$(fail2ban-client status | grep "Jail list:" | sed 's/`- Jail list:\t//' | tr -d ',')
+  index=1
+  jail_array=()
   for jail in $jails; do
     echo -e "    ${GREEN}$index.${NC} Подробная статистика и управление Jail: ${BOLD}${CYAN}$jail${NC}"
     jail_array+=("$jail")
     index=$((index + 1))
   done
   
-  local log_choice_idx=$index
+  log_choice_idx=$index
   echo -e "    ${GREEN}$log_choice_idx.${NC} Просмотр живых логов Fail2ban (/var/log/fail2ban.log)"
   
-  local exit_choice_idx=$((index + 1))
+  exit_choice_idx=$((index + 1))
   echo -e "    ${GREEN}$exit_choice_idx.${NC} Выйти"
   echo ""
   
@@ -167,7 +176,7 @@ while true; do
     echo -e "${GRAY}----------------------------------------------------------------${NC}"
     tail -n 100 -f /var/log/fail2ban.log
   elif [ "$main_choice" -ge 1 ] 2>/dev/null && [ "$main_choice" -lt "$log_choice_idx" ] 2>/dev/null; then
-    local selected_jail=${jail_array[$((main_choice - 1))]}
+    selected_jail=${jail_array[$((main_choice - 1))]}
     manage_jail "$selected_jail"
   else
     echo -e "${RED}Неверный выбор.${NC}"
