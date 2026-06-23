@@ -453,10 +453,10 @@ manage_jail() {
     echo -e "${GRAY}----------------------------------------------------------------${NC}"
     
     local stats=$(fail2ban-client status "$jail")
-    local currently_failed=$(echo "$stats" | grep "Currently failed:" | awk '{print $4}')
-    local total_failed=$(echo "$stats" | grep "Total failed:" | awk '{print $4}')
-    local currently_banned=$(echo "$stats" | grep "Currently banned:" | awk '{print $4}')
-    local total_banned=$(echo "$stats" | grep "Total banned:" | awk '{print $4}')
+    local currently_failed=$(echo "$stats" | grep "Currently failed:" | cut -d':' -f2 | xargs)
+    local total_failed=$(echo "$stats" | grep "Total failed:" | cut -d':' -f2 | xargs)
+    local currently_banned=$(echo "$stats" | grep "Currently banned:" | cut -d':' -f2 | xargs)
+    local total_banned=$(echo "$stats" | grep "Total banned:" | cut -d':' -f2 | xargs)
     
     echo -e "    $MSG_FAILED_NOW: ${YELLOW}$currently_failed${NC} | $MSG_FAILED_TOTAL: ${GRAY}$total_failed${NC}"
     echo -e "    $MSG_JAIL_BANNED:       ${RED}${BOLD}$currently_banned${NC} | $MSG_JAIL_TOTAL:   ${GRAY}$total_banned${NC}"
