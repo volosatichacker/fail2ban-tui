@@ -45,6 +45,55 @@ load_language() {
 
 load_language
 
+ensure_norkn_ban() {
+  local action_file="/etc/fail2ban/action.d/norkn-ban.conf"
+  local jail_local="/etc/fail2ban/jail.local"
+
+  # Create action file if it doesn't exist or doesn't have our URL
+  if [ ! -f "$action_file" ] || ! grep -q "banned.norkn.ru" "$action_file"; then
+    mkdir -p /etc/fail2ban/action.d
+    cat << 'EOF' > "$action_file"
+[Definition]
+actionban = curl -s -X POST -H "Content-Type: application/json" -d '{"ip": "<ip>", "reason": "Banned by fail2ban jail <name>", "userAgent": "Fail2ban TUI Bot"}' https://banned.norkn.ru/api/ban
+actionunban =
+EOF
+  fi
+
+  # Ensure jail.local exists
+  if [ ! -f "$jail_local" ]; then
+    touch "$jail_local"
+  fi
+
+  local needs_restart=0
+  
+  # Check if jail.local already contains norkn-ban
+  if ! grep -q "norkn-ban" "$jail_local"; then
+    python3 -c "
+import configparser
+import os
+file = '$jail_local'
+config = configparser.ConfigParser(strict=False, interpolation=None)
+config.read(file)
+curr_action = config.defaults().get('action', '')
+if 'norkn-ban' not in curr_action:
+    if not curr_action:
+        new_action = '%(action_)s\n         norkn-ban[name=%(__name__)s]'
+    else:
+        new_action = curr_action + '\n         norkn-ban[name=%(__name__)s]'
+    config.set('DEFAULT', 'action', new_action)
+    with open(file, 'w') as f:
+        config.write(f)
+" 2>/dev/null
+    needs_restart=1
+  fi
+
+  if [ "$needs_restart" -eq 1 ]; then
+    echo -e "${YELLOW}$MSG_SETUP_NORKN${NC}"
+    systemctl reload fail2ban >/dev/null 2>&1 || systemctl restart fail2ban >/dev/null 2>&1
+    sleep 1
+  fi
+}
+
 # Non-interactive setup flag
 if [ "$1" = "--setup" ] || [ "$1" = "-s" ]; then
   # Quietly ensure fail2ban is installed (non-interactive auto-install if missing)
@@ -260,55 +309,6 @@ EOF
 
   echo -e "${GREEN}${BOLD}$MSG_INSTALL_OK${NC}"
   sleep 2
-}
-
-ensure_norkn_ban() {
-  local action_file="/etc/fail2ban/action.d/norkn-ban.conf"
-  local jail_local="/etc/fail2ban/jail.local"
-
-  # Create action file if it doesn't exist or doesn't have our URL
-  if [ ! -f "$action_file" ] || ! grep -q "banned.norkn.ru" "$action_file"; then
-    mkdir -p /etc/fail2ban/action.d
-    cat << 'EOF' > "$action_file"
-[Definition]
-actionban = curl -s -X POST -H "Content-Type: application/json" -d '{"ip": "<ip>", "reason": "Banned by fail2ban jail <name>", "userAgent": "Fail2ban TUI Bot"}' https://banned.norkn.ru/api/ban
-actionunban =
-EOF
-  fi
-
-  # Ensure jail.local exists
-  if [ ! -f "$jail_local" ]; then
-    touch "$jail_local"
-  fi
-
-  local needs_restart=0
-  
-  # Check if jail.local already contains norkn-ban
-  if ! grep -q "norkn-ban" "$jail_local"; then
-    python3 -c "
-import configparser
-import os
-file = '$jail_local'
-config = configparser.ConfigParser(strict=False, interpolation=None)
-config.read(file)
-curr_action = config.defaults().get('action', '')
-if 'norkn-ban' not in curr_action:
-    if not curr_action:
-        new_action = '%(action_)s\n         norkn-ban[name=%(__name__)s]'
-    else:
-        new_action = curr_action + '\n         norkn-ban[name=%(__name__)s]'
-    config.set('DEFAULT', 'action', new_action)
-    with open(file, 'w') as f:
-        config.write(f)
-" 2>/dev/null
-    needs_restart=1
-  fi
-
-  if [ "$needs_restart" -eq 1 ]; then
-    echo -e "${YELLOW}$MSG_SETUP_NORKN${NC}"
-    systemctl reload fail2ban >/dev/null 2>&1 || systemctl restart fail2ban >/dev/null 2>&1
-    sleep 1
-  fi
 }
 
 # Check if fail2ban-client is installed
