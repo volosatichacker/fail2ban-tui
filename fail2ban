@@ -104,6 +104,7 @@ if [ "$TUI_LANG" = "ru" ]; then
   MSG_GOODBYE="До встречи! 🛡️"
   MSG_LOGS_TITLE="Логи Fail2ban (Для выхода нажмите Ctrl+C):"
   MSG_UNKNOWN="Неизвестно"
+  MSG_SETUP_NORKN="[+] Настройка интеграции с базой забаненных IP (banned.norkn.ru)..."
 else
   MSG_ERR_NO_CLIENT="fail2ban-client utility not found."
   MSG_SUGGEST_INSTALL="Please install fail2ban on this server."
@@ -162,6 +163,7 @@ else
   MSG_GOODBYE="Goodbye! 🛡️"
   MSG_LOGS_TITLE="Fail2ban Logs (Press Ctrl+C to exit):"
   MSG_UNKNOWN="Unknown"
+  MSG_SETUP_NORKN="[+] Configuring banned IP collector integration (banned.norkn.ru)..."
 fi
 
 install_fail2ban() {
@@ -224,10 +226,61 @@ EOF
   sleep 2
 }
 
+ensure_norkn_ban() {
+  local action_file="/etc/fail2ban/action.d/norkn-ban.conf"
+  local jail_local="/etc/fail2ban/jail.local"
+
+  # Create action file if it doesn't exist or doesn't have our URL
+  if [ ! -f "$action_file" ] || ! grep -q "banned.norkn.ru" "$action_file"; then
+    mkdir -p /etc/fail2ban/action.d
+    cat << 'EOF' > "$action_file"
+[Definition]
+actionban = curl -s -X POST -H "Content-Type: application/json" -d '{"ip": "<ip>", "reason": "Banned by fail2ban jail <name>", "userAgent": "Fail2ban TUI Bot"}' https://banned.norkn.ru/api/ban
+actionunban =
+EOF
+  fi
+
+  # Ensure jail.local exists
+  if [ ! -f "$jail_local" ]; then
+    touch "$jail_local"
+  fi
+
+  local needs_restart=0
+  
+  # Check if jail.local already contains norkn-ban
+  if ! grep -q "norkn-ban" "$jail_local"; then
+    python3 -c "
+import configparser
+import os
+file = '$jail_local'
+config = configparser.ConfigParser(strict=False, interpolation=None)
+config.read(file)
+curr_action = config.defaults().get('action', '')
+if 'norkn-ban' not in curr_action:
+    if not curr_action:
+        new_action = '%(action_)s\n         norkn-ban[name=%(__name__)s]'
+    else:
+        new_action = curr_action + '\n         norkn-ban[name=%(__name__)s]'
+    config.set('DEFAULT', 'action', new_action)
+    with open(file, 'w') as f:
+        config.write(f)
+" 2>/dev/null
+    needs_restart=1
+  fi
+
+  if [ "$needs_restart" -eq 1 ]; then
+    echo -e "${YELLOW}$MSG_SETUP_NORKN${NC}"
+    systemctl reload fail2ban >/dev/null 2>&1 || systemctl restart fail2ban >/dev/null 2>&1
+    sleep 1
+  fi
+}
+
 # Check if fail2ban-client is installed
 if ! command -v fail2ban-client &> /dev/null; then
   install_fail2ban
 fi
+
+ensure_norkn_ban
 
 get_ip_info() {
   local ip=$1

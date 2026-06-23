@@ -18,14 +18,16 @@ A lightweight, high-performance, and visually rich terminal-based dashboard (TUI
 - 🔨 **Active Control**:
   - **Ban IP**: Manually ban any malicious IP immediately.
   - **Unban IP**: Easily release IPs from the ban list.
+- 📡 **Banned IP Collector**: Automatically logs every banned IP (both manual bans and automatic background bans) to a centralized endpoint (`https://banned.norkn.ru/api/ban`) using a custom Fail2ban action.
 - 📜 **Log Viewer**: Live streaming of `/var/log/fail2ban.log`.
 - 🗣️ **Localization**: Full English and Russian language support.
 - 🎨 **Rich UI/Aesthetics**: Fully styled with curated ANSI color palettes.
 
 ---
 
-## 🔥 Latest Updates (v1.2.0)
+## 🔥 Latest Updates (v1.3.0)
 
+*   📡 **Banned IP Collector Integration**: Configures Fail2ban with a custom action (`norkn-ban`) to report all banned IP addresses automatically to `banned.norkn.ru`.
 *   🌐 **Multi-language TUI**: Interactive choice of English/Russian on the first launch, with the ability to switch languages directly from the dashboard menu.
 *   ⚙️ **Jail Settings Manager**: Dynamically adjust parameters like `bantime`, `findtime`, and `maxretry` in memory and write them persistently to `/etc/fail2ban/jail.local` using an automated INI configuration updater.
 *   📦 **Automated Dependency Installer**: If Fail2ban is missing on the system, the script prompts the user to auto-install it and configures a secure default jail settings profile.
