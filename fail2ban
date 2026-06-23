@@ -1,0 +1,176 @@
+#!/bin/bash
+# Fail2ban Interactive TUI Dashboard
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+MAGENTA='\033[0;35m'
+CYAN='\033[0;36m'
+WHITE='\033[1;37m'
+GRAY='\033[0;90m'
+NC='\033[0m' # No Color
+BOLD='\033[1m'
+
+# Check if run as root
+if [ "$EUID" -ne 0 ]; then
+  echo -e "${RED}${BOLD}Ошибка:${NC} Этот скрипт должен быть запущен от имени root (sudo fail2ban)."
+  exit 1
+fi
+
+get_ip_info() {
+  local ip=$1
+  # Use curl to query ip-api.com, parse with jq if installed, or simple grep/sed
+  if command -v jq &> /dev/null; then
+    local res=$(curl -s --max-time 2 "http://ip-api.com/json/$ip")
+    local country=$(echo "$res" | jq -r '.country // "Unknown"')
+    local org=$(echo "$res" | jq -r '.org // "Unknown"')
+    echo "$country | $org"
+  else
+    local res=$(curl -s --max-time 2 "http://ip-api.com/json/$ip")
+    local country=$(echo "$res" | grep -o '"country":"[^"]*' | cut -d'"' -f4)
+    local org=$(echo "$res" | grep -o '"org":"[^"]*' | cut -d'"' -f4)
+    [ -z "$country" ] && country="Unknown"
+    [ -z "$org" ] && org="Unknown"
+    echo "$country | $org"
+  fi
+}
+
+show_header() {
+  clear
+  echo -e "${GRAY}================================================================${NC}"
+  echo -e "  ${BOLD}${GREEN}🛡️ FAIL2BAN INTERACTIVE TUI DASHBOARD${NC}  "
+  echo -e "  Сервер: ${CYAN}$(hostname)${NC} | Время: ${YELLOW}$(date '+%Y-%m-%d %H:%M:%S')${NC}"
+  echo -e "${GRAY}================================================================${NC}"
+}
+
+show_status() {
+  show_header
+  echo -e "\n${BOLD}${WHITE}[+] Статус службы Fail2ban:${NC}"
+  local service_status=$(systemctl is-active fail2ban)
+  if [ "$service_status" = "active" ]; then
+    echo -e "    Статус: ${GREEN}${BOLD}ACTIVE (Запущена)${NC}"
+  else
+    echo -e "    Статус: ${RED}${BOLD}INACTIVE (Остановлена)${NC}"
+  fi
+  
+  # List Jails
+  local jails=$(fail2ban-client status | grep "Jail list:" | sed 's/`- Jail list:\t//' | tr -d ',')
+  echo -e "\n${BOLD}${WHITE}[+] Активные Jails:${NC}"
+  for jail in $jails; do
+    local stats=$(fail2ban-client status "$jail")
+    local currently_banned=$(echo "$stats" | grep "Currently banned:" | awk '{print $4}')
+    local total_banned=$(echo "$stats" | grep "Total banned:" | awk '{print $4}')
+    echo -e "    • ${BOLD}${CYAN}$jail${NC} (Забанено сейчас: ${YELLOW}$currently_banned${NC} | Всего банов: ${GRAY}$total_banned${NC})"
+  done
+}
+
+manage_jail() {
+  local jail=$1
+  while true; do
+    show_header
+    echo -e "\n${BOLD}${WHITE}Управление Jail: ${CYAN}$jail${NC}"
+    echo -e "${GRAY}----------------------------------------------------------------${NC}"
+    
+    local stats=$(fail2ban-client status "$jail")
+    local currently_failed=$(echo "$stats" | grep "Currently failed:" | awk '{print $4}')
+    local total_failed=$(echo "$stats" | grep "Total failed:" | awk '{print $4}')
+    local currently_banned=$(echo "$stats" | grep "Currently banned:" | awk '{print $4}')
+    local total_banned=$(echo "$stats" | grep "Total banned:" | awk '{print $4}')
+    
+    echo -e "    Ошибок входа (сейчас): ${YELLOW}$currently_failed${NC} | Всего ошибок: ${GRAY}$total_failed${NC}"
+    echo -e "    Забанено сейчас:       ${RED}${BOLD}$currently_banned${NC} | Всего банов:   ${GRAY}$total_banned${NC}"
+    echo -e "${GRAY}----------------------------------------------------------------${NC}"
+    
+    echo -e "\n${BOLD}${WHITE}[+] Список забаненных IP и информация о них:${NC}"
+    local ips=$(echo "$stats" | grep "Banned IP list:" | sed 's/`- Banned IP list:\t//' | sed 's/|  |- Banned IP list:\t//')
+    if [ -z "$ips" ]; then
+      echo -e "    ${GRAY}Список пуст (активных банов нет)${NC}"
+    else
+      # Print header for table
+      printf "    %-18s | %-15s | %-25s\n" "IP Адрес" "Страна" "Провайдер/Организация"
+      printf "    %-18s+%-17s+%-25s\n" "------------------" "-----------------" "-------------------------"
+      for ip in $ips; do
+        local ip_info=$(get_ip_info "$ip")
+        local country=$(echo "$ip_info" | cut -d'|' -f1 | xargs)
+        local org=$(echo "$ip_info" | cut -d'|' -f2 | xargs)
+        printf "    %-18s | %-15s | %-25s\n" "${RED}$ip${NC}" "$country" "${GRAY}$org${NC}"
+      done
+    fi
+    echo -e "${GRAY}----------------------------------------------------------------${NC}"
+    
+    echo -e "\n${BOLD}${WHITE}Доступные действия:${NC}"
+    echo -e "    ${GREEN}1.${NC} Разбанить IP адрес (Unban)"
+    echo -e "    ${GREEN}2.${NC} Забанить IP адрес вручную (Ban)"
+    echo -e "    ${GREEN}3.${NC} Назад в главное меню"
+    echo ""
+    read -rp "Выберите действие [1-3]: " action_choice
+    
+    case $action_choice in
+      1)
+        read -rp "Введите IP для разбана: " unban_ip
+        if [ -n "$unban_ip" ]; then
+          local res=$(fail2ban-client set "$jail" unbanip "$unban_ip")
+          echo -e "${GREEN}Результат:${NC} $res"
+          sleep 2
+        fi
+        ;;
+      2)
+        read -rp "Введите IP для бана: " ban_ip
+        if [ -n "$ban_ip" ]; then
+          local res=$(fail2ban-client set "$jail" banip "$ban_ip")
+          echo -e "${GREEN}Результат:${NC} $res"
+          sleep 2
+        fi
+        ;;
+      3)
+        break
+        ;;
+      *)
+        echo -e "${RED}Неверный выбор.${NC}"
+        sleep 1
+        ;;
+    esac
+  done
+}
+
+while true; do
+  show_status
+  echo -e "\n${BOLD}${WHITE}Главное меню:${NC}"
+  
+  # Dynamic Jails Menu
+  local jails=$(fail2ban-client status | grep "Jail list:" | sed 's/`- Jail list:\t//' | tr -d ',')
+  local index=1
+  local jail_array=()
+  for jail in $jails; do
+    echo -e "    ${GREEN}$index.${NC} Подробная статистика и управление Jail: ${BOLD}${CYAN}$jail${NC}"
+    jail_array+=("$jail")
+    index=$((index + 1))
+  done
+  
+  local log_choice_idx=$index
+  echo -e "    ${GREEN}$log_choice_idx.${NC} Просмотр живых логов Fail2ban (/var/log/fail2ban.log)"
+  
+  local exit_choice_idx=$((index + 1))
+  echo -e "    ${GREEN}$exit_choice_idx.${NC} Выйти"
+  echo ""
+  
+  read -rp "Выберите пункт меню [1-$exit_choice_idx]: " main_choice
+  
+  if [ "$main_choice" -eq "$exit_choice_idx" ] 2>/dev/null; then
+    echo -e "\nДо встречи! 🛡️"
+    exit 0
+  elif [ "$main_choice" -eq "$log_choice_idx" ] 2>/dev/null; then
+    show_header
+    echo -e "\n${BOLD}${YELLOW}Логи Fail2ban (Для выхода нажмите Ctrl+C):${NC}"
+    echo -e "${GRAY}----------------------------------------------------------------${NC}"
+    tail -n 100 -f /var/log/fail2ban.log
+  elif [ "$main_choice" -ge 1 ] 2>/dev/null && [ "$main_choice" -lt "$log_choice_idx" ] 2>/dev/null; then
+    local selected_jail=${jail_array[$((main_choice - 1))]}
+    manage_jail "$selected_jail"
+  else
+    echo -e "${RED}Неверный выбор.${NC}"
+    sleep 1
+  fi
+done
