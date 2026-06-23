@@ -68,7 +68,7 @@ if [ "$TUI_LANG" = "ru" ]; then
   MSG_TIME="Время"
   MSG_STATUS_TITLE="[+] Статус службы Fail2ban:"
   MSG_STATUS_ACTIVE="Статус: ACTIVE (Запущена)"
-  MSG_STATUS_INACTIVE="Status: INACTIVE (Остановлена)"
+  MSG_STATUS_INACTIVE="Статус: INACTIVE (Остановлена)"
   MSG_ACTIVE_JAILS="[+] Активные Jails:"
   MSG_JAIL_BANNED="Забанено сейчас"
   MSG_JAIL_TOTAL="Всего банов"
@@ -83,7 +83,15 @@ if [ "$TUI_LANG" = "ru" ]; then
   MSG_ACTIONS="Доступные действия:"
   MSG_ACTION_UNBAN="Разбанить IP адрес (Unban)"
   MSG_ACTION_BAN="Забанить IP адрес вручную (Ban)"
-  MSG_ACTION_BACK="Назад в главное меню"
+  MSG_ACTION_BACK="Назад"
+  MSG_ACTION_SETTINGS="Изменить настройки Jail (bantime/findtime/maxretry)"
+  MSG_CHOOSE_SETTING="Выберите параметр для изменения:"
+  MSG_SETTING_BANTIME="Время бана (bantime)"
+  MSG_SETTING_FINDTIME="Интервал поиска (findtime)"
+  MSG_SETTING_MAXRETRY="Макс. количество попыток (maxretry)"
+  MSG_ENTER_NEW_VALUE="Введите новое значение (например, 1d, 10m, 5): "
+  MSG_SETTING_OK="Параметр успешно обновлен в памяти и сохранен в jail.local!"
+  MSG_CURRENT_VAL="Текущее значение"
   MSG_ENTER_UNBAN_IP="Введите IP для разбана: "
   MSG_ENTER_BAN_IP="Введите IP для бана: "
   MSG_RESULT="Результат"
@@ -133,7 +141,15 @@ else
   MSG_ACTIONS="Available Actions:"
   MSG_ACTION_UNBAN="Unban IP Address"
   MSG_ACTION_BAN="Ban IP Address manually"
-  MSG_ACTION_BACK="Back to main menu"
+  MSG_ACTION_BACK="Back"
+  MSG_ACTION_SETTINGS="Change Jail Settings (bantime/findtime/maxretry)"
+  MSG_CHOOSE_SETTING="Select parameter to change:"
+  MSG_SETTING_BANTIME="Ban duration (bantime)"
+  MSG_SETTING_FINDTIME="Find window (findtime)"
+  MSG_SETTING_MAXRETRY="Max retry attempts (maxretry)"
+  MSG_ENTER_NEW_VALUE="Enter new value (e.g., 1d, 10m, 5): "
+  MSG_SETTING_OK="Parameter successfully updated in memory and saved to jail.local!"
+  MSG_CURRENT_VAL="Current value"
   MSG_ENTER_UNBAN_IP="Enter IP to unban: "
   MSG_ENTER_BAN_IP="Enter IP to ban: "
   MSG_RESULT="Result"
@@ -260,6 +276,71 @@ show_status() {
   done
 }
 
+update_jail_local_config() {
+  local jail=$1
+  local key=$2
+  local val=$3
+  local file="/etc/fail2ban/jail.local"
+  
+  if [ -f "$file" ]; then
+    python3 -c "
+import configparser
+config = configparser.ConfigParser(strict=False, interpolation=None)
+config.read('$file')
+if not config.has_section('$jail'):
+    config.add_section('$jail')
+config.set('$jail', '$key', '$val')
+with open('$file', 'w') as f:
+    config.write(f)
+" 2>/dev/null
+  fi
+}
+
+configure_jail_settings() {
+  local jail=$1
+  while true; do
+    show_header
+    echo -e "\n${BOLD}${WHITE}$MSG_ACTION_SETTINGS для ${CYAN}$jail${NC}"
+    echo -e "${GRAY}----------------------------------------------------------------${NC}"
+    
+    local curr_bantime=$(fail2ban-client get "$jail" bantime)
+    local curr_findtime=$(fail2ban-client get "$jail" findtime)
+    local curr_maxretry=$(fail2ban-client get "$jail" maxretry)
+    
+    echo -e "    ${GREEN}1.${NC} $MSG_SETTING_BANTIME [ $MSG_CURRENT_VAL: ${YELLOW}$curr_bantime сек${NC} ]"
+    echo -e "    ${GREEN}2.${NC} $MSG_SETTING_FINDTIME [ $MSG_CURRENT_VAL: ${YELLOW}$curr_findtime сек${NC} ]"
+    echo -e "    ${GREEN}3.${NC} $MSG_SETTING_MAXRETRY [ $MSG_CURRENT_VAL: ${YELLOW}$curr_maxretry${NC} ]"
+    echo -e "    ${GREEN}4.${NC} $MSG_ACTION_BACK"
+    echo -e "${GRAY}----------------------------------------------------------------${NC}"
+    echo ""
+    read -rp "1-4: " set_choice
+    
+    local key=""
+    case $set_choice in
+      1) key="bantime" ;;
+      2) key="findtime" ;;
+      3) key="maxretry" ;;
+      4) break ;;
+      *)
+        echo -e "${RED}$MSG_INVALID_CHOICE${NC}"
+        sleep 1
+        continue
+        ;;
+    esac
+    
+    read -rp "$MSG_ENTER_NEW_VALUE" new_val
+    if [ -n "$new_val" ]; then
+      # Apply via fail2ban-client
+      local res=$(fail2ban-client set "$jail" "$key" "$new_val")
+      # Save permanently in jail.local
+      update_jail_local_config "$jail" "$key" "$new_val"
+      
+      echo -e "${GREEN}$MSG_SETTING_OK${NC}"
+      sleep 2
+    fi
+  done
+}
+
 manage_jail() {
   local jail=$1
   while true; do
@@ -298,9 +379,10 @@ manage_jail() {
     echo -e "\n${BOLD}${WHITE}$MSG_ACTIONS${NC}"
     echo -e "    ${GREEN}1.${NC} $MSG_ACTION_UNBAN"
     echo -e "    ${GREEN}2.${NC} $MSG_ACTION_BAN"
-    echo -e "    ${GREEN}3.${NC} $MSG_ACTION_BACK"
+    echo -e "    ${GREEN}3.${NC} $MSG_ACTION_SETTINGS"
+    echo -e "    ${GREEN}4.${NC} $MSG_ACTION_BACK"
     echo ""
-    read -rp "1-3: " action_choice
+    read -rp "1-4: " action_choice
     
     case $action_choice in
       1)
@@ -320,6 +402,9 @@ manage_jail() {
         fi
         ;;
       3)
+        configure_jail_settings "$jail"
+        ;;
+      4)
         break
         ;;
       *)
