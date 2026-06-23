@@ -1,5 +1,7 @@
 # 🛡️ Fail2ban Interactive TUI Dashboard
 
+🇷🇺 [Русская версия здесь](README_RU.md)
+
 [![GitHub license](https://img.shields.io/github/license/volosatichacker/fail2ban-tui?style=flat-glowing&color=green)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/volosatichacker/fail2ban-tui?style=flat-glowing)](https://github.com/volosatichacker/fail2ban-tui/stargazers)
 [![Shell Script](https://img.shields.io/badge/shell-bash-4ea1a3?style=flat-glowing&logo=gnu-bash)](https://www.gnu.org/software/bash/)

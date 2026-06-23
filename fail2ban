@@ -2,16 +2,16 @@
 # Fail2ban Interactive TUI Dashboard
 
 # Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-MAGENTA='\033[0;35m'
-CYAN='\033[0;36m'
-WHITE='\033[1;37m'
-GRAY='\033[0;90m'
-NC='\033[0m' # No Color
-BOLD='\033[1m'
+RED=$'\e[0;31m'
+GREEN=$'\e[0;32m'
+YELLOW=$'\e[0;33m'
+BLUE=$'\e[0;34m'
+MAGENTA=$'\e[0;35m'
+CYAN=$'\e[0;36m'
+WHITE=$'\e[1;37m'
+GRAY=$'\e[0;90m'
+NC=$'\e[0m'
+BOLD=$'\e[1m'
 
 # Check if run as root
 if [ "$EUID" -ne 0 ]; then
@@ -19,45 +19,174 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
+# Language configuration file
+LANG_CONF="/etc/fail2ban/fail2ban_tui.conf"
+
+load_language() {
+  if [ -f "$LANG_CONF" ]; then
+    source "$LANG_CONF"
+  else
+    clear
+    echo "========================================"
+    echo "  Select Language / Выберите язык       "
+    echo "========================================"
+    echo "  1. English"
+    echo "  2. Русский"
+    echo "========================================"
+    read -rp "Enter choice [1-2]: " lang_choice
+    if [ "$lang_choice" = "2" ]; then
+      echo 'TUI_LANG="ru"' > "$LANG_CONF"
+    else
+      echo 'TUI_LANG="en"' > "$LANG_CONF"
+    fi
+    source "$LANG_CONF"
+  fi
+}
+
+load_language
+
+# Translation Dictionary
+if [ "$TUI_LANG" = "ru" ]; then
+  MSG_ERR_NO_CLIENT="Утилита fail2ban-client не найдена."
+  MSG_SUGGEST_INSTALL="Пожалуйста, установите fail2ban на этом сервере."
+  MSG_INSTALL_PROMPT="Fail2ban не установлен на этом сервере. Хотите автоматически установить и настроить его? [y/N]: "
+  MSG_INSTALL_CANCEL="Установка отменена. Скрипт завершает работу."
+  MSG_INSTALL_START="[+] Начало установки Fail2ban..."
+  MSG_INSTALL_APT_UPDATE="    Обновление пакетной базы (apt update)..."
+  MSG_INSTALL_APT_INSTALL="    Установка fail2ban (apt install)..."
+  MSG_INSTALL_DNF_EPEL="    Подключение EPEL репозитория..."
+  MSG_INSTALL_DNF_INSTALL="    Установка fail2ban (dnf install)..."
+  MSG_INSTALL_YUM_EPEL="    Подключение EPEL репозитория..."
+  MSG_INSTALL_YUM_INSTALL="    Установка fail2ban (yum install)..."
+  MSG_INSTALL_ERR_PM="Ошибка: Не удалось определить пакетный менеджер (поддерживаются apt, dnf, yum)."
+  MSG_INSTALL_ERR_FAIL="Ошибка: Не удалось установить Fail2ban."
+  MSG_INSTALL_CONFIG="    Создание базовой конфигурации (/etc/fail2ban/jail.local)..."
+  MSG_INSTALL_START_SVC="    Запуск и включение автозагрузки fail2ban..."
+  MSG_INSTALL_OK="✓ Fail2ban успешно установлен и настроен!"
+  MSG_TITLE="🛡️ FAIL2BAN ИНТЕРАКТИВНАЯ TUI ПАНЕЛЬ"
+  MSG_HOST="Сервер"
+  MSG_TIME="Время"
+  MSG_STATUS_TITLE="[+] Статус службы Fail2ban:"
+  MSG_STATUS_ACTIVE="Статус: ACTIVE (Запущена)"
+  MSG_STATUS_INACTIVE="Status: INACTIVE (Остановлена)"
+  MSG_ACTIVE_JAILS="[+] Активные Jails:"
+  MSG_JAIL_BANNED="Забанено сейчас"
+  MSG_JAIL_TOTAL="Всего банов"
+  MSG_MANAGE_JAIL="Управление Jail"
+  MSG_FAILED_NOW="Ошибок входа (сейчас)"
+  MSG_FAILED_TOTAL="Всего ошибок"
+  MSG_BANNED_IP_LIST="[+] Список забаненных IP и информация о них:"
+  MSG_BANNED_EMPTY="Список пуст (активных банов нет)"
+  MSG_COL_IP="IP Адрес"
+  MSG_COL_COUNTRY="Страна"
+  MSG_COL_ORG="Провайдер/Организация"
+  MSG_ACTIONS="Доступные действия:"
+  MSG_ACTION_UNBAN="Разбанить IP адрес (Unban)"
+  MSG_ACTION_BAN="Забанить IP адрес вручную (Ban)"
+  MSG_ACTION_BACK="Назад в главное меню"
+  MSG_ENTER_UNBAN_IP="Введите IP для разбана: "
+  MSG_ENTER_BAN_IP="Введите IP для бана: "
+  MSG_RESULT="Результат"
+  MSG_INVALID_CHOICE="Неверный выбор."
+  MSG_MAIN_MENU="Главное меню:"
+  MSG_JAIL_STATS="Подробная статистика и управление Jail"
+  MSG_VIEW_LOGS="Просмотр живых логов Fail2ban (/var/log/fail2ban.log)"
+  MSG_EXIT="Выйти"
+  MSG_CHANGE_LANG="Сменить язык (Change Language)"
+  MSG_GOODBYE="До встречи! 🛡️"
+  MSG_LOGS_TITLE="Логи Fail2ban (Для выхода нажмите Ctrl+C):"
+  MSG_UNKNOWN="Неизвестно"
+else
+  MSG_ERR_NO_CLIENT="fail2ban-client utility not found."
+  MSG_SUGGEST_INSTALL="Please install fail2ban on this server."
+  MSG_INSTALL_PROMPT="Fail2ban is not installed on this server. Do you want to automatically install and configure it? [y/N]: "
+  MSG_INSTALL_CANCEL="Installation cancelled. Exiting."
+  MSG_INSTALL_START="[+] Starting Fail2ban installation..."
+  MSG_INSTALL_APT_UPDATE="    Updating package cache (apt update)..."
+  MSG_INSTALL_APT_INSTALL="    Installing fail2ban (apt install)..."
+  MSG_INSTALL_DNF_EPEL="    Enabling EPEL repository..."
+  MSG_INSTALL_DNF_INSTALL="    Installing fail2ban (dnf install)..."
+  MSG_INSTALL_YUM_EPEL="    Enabling EPEL repository..."
+  MSG_INSTALL_YUM_INSTALL="    Installing fail2ban (yum install)..."
+  MSG_INSTALL_ERR_PM="Error: Could not detect package manager (supported: apt, dnf, yum)."
+  MSG_INSTALL_ERR_FAIL="Error: Failed to install Fail2ban."
+  MSG_INSTALL_CONFIG="    Creating basic configuration (/etc/fail2ban/jail.local)..."
+  MSG_INSTALL_START_SVC="    Starting and enabling fail2ban service..."
+  MSG_INSTALL_OK="✓ Fail2ban successfully installed and configured!"
+  MSG_TITLE="🛡️ FAIL2BAN INTERACTIVE TUI DASHBOARD"
+  MSG_HOST="Server"
+  MSG_TIME="Time"
+  MSG_STATUS_TITLE="[+] Fail2ban Service Status:"
+  MSG_STATUS_ACTIVE="Status: ACTIVE (Running)"
+  MSG_STATUS_INACTIVE="Status: INACTIVE (Stopped)"
+  MSG_ACTIVE_JAILS="[+] Active Jails:"
+  MSG_JAIL_BANNED="Currently banned"
+  MSG_JAIL_TOTAL="Total bans"
+  MSG_MANAGE_JAIL="Manage Jail"
+  MSG_FAILED_NOW="Failed logins (now)"
+  MSG_FAILED_TOTAL="Total failed"
+  MSG_BANNED_IP_LIST="[+] Banned IP list and details:"
+  MSG_BANNED_EMPTY="List is empty (no active bans)"
+  MSG_COL_IP="IP Address"
+  MSG_COL_COUNTRY="Country"
+  MSG_COL_ORG="Provider/Organization"
+  MSG_ACTIONS="Available Actions:"
+  MSG_ACTION_UNBAN="Unban IP Address"
+  MSG_ACTION_BAN="Ban IP Address manually"
+  MSG_ACTION_BACK="Back to main menu"
+  MSG_ENTER_UNBAN_IP="Enter IP to unban: "
+  MSG_ENTER_BAN_IP="Enter IP to ban: "
+  MSG_RESULT="Result"
+  MSG_INVALID_CHOICE="Invalid choice."
+  MSG_MAIN_MENU="Main Menu:"
+  MSG_JAIL_STATS="Detailed statistics and management for Jail"
+  MSG_VIEW_LOGS="View live Fail2ban logs (/var/log/fail2ban.log)"
+  MSG_EXIT="Exit"
+  MSG_CHANGE_LANG="Change Language (Сменить язык)"
+  MSG_GOODBYE="Goodbye! 🛡️"
+  MSG_LOGS_TITLE="Fail2ban Logs (Press Ctrl+C to exit):"
+  MSG_UNKNOWN="Unknown"
+fi
+
 install_fail2ban() {
-  echo -e "${YELLOW}Fail2ban не установлен на этом сервере.${NC}"
-  read -rp "Хотите автоматически установить и настроить его? [y/N]: " confirm_install
+  echo -e "${YELLOW}$MSG_INSTALL_PROMPT${NC}"
+  read -rp "" confirm_install
   if [[ ! "$confirm_install" =~ ^[Yy]$ ]]; then
-    echo -e "${RED}Установка отменена. Скрипт завершает работу.${NC}"
+    echo -e "${RED}$MSG_INSTALL_CANCEL${NC}"
     exit 1
   fi
 
-  echo -e "\n${BOLD}${WHITE}[+] Начало установки Fail2ban...${NC}"
+  echo -e "\n${BOLD}${WHITE}$MSG_INSTALL_START${NC}"
 
   # Detect Package Manager
   if command -v apt-get &> /dev/null; then
-    echo -e "    Обновление пакетной базы (apt update)..."
+    echo -e "$MSG_INSTALL_APT_UPDATE"
     apt-get update -qq >/dev/null 2>&1
-    echo -e "    Установка fail2ban (apt install)..."
+    echo -e "$MSG_INSTALL_APT_INSTALL"
     apt-get install -y fail2ban >/dev/null 2>&1
   elif command -v dnf &> /dev/null; then
-    echo -e "    Подключение EPEL репозитория..."
+    echo -e "$MSG_INSTALL_DNF_EPEL"
     dnf install -y epel-release >/dev/null 2>&1
-    echo -e "    Установка fail2ban (dnf install)..."
+    echo -e "$MSG_INSTALL_DNF_INSTALL"
     dnf install -y fail2ban >/dev/null 2>&1
   elif command -v yum &> /dev/null; then
-    echo -e "    Подключение EPEL репозитория..."
+    echo -e "$MSG_INSTALL_YUM_EPEL"
     yum install -y epel-release >/dev/null 2>&1
-    echo -e "    Установка fail2ban (yum install)..."
+    echo -e "$MSG_INSTALL_YUM_INSTALL"
     yum install -y fail2ban >/dev/null 2>&1
   else
-    echo -e "${RED}Ошибка: Не удалось определить пакетный менеджер (поддерживаются apt, dnf, yum).${NC}"
+    echo -e "${RED}$MSG_INSTALL_ERR_PM${NC}"
     exit 1
   fi
 
   # Verify installation
   if ! command -v fail2ban-client &> /dev/null; then
-    echo -e "${RED}Ошибка: Не удалось установить Fail2ban.${NC}"
+    echo -e "${RED}$MSG_INSTALL_ERR_FAIL${NC}"
     exit 1
   fi
 
   # Basic configuration
-  echo -e "    Создание базовой конфигурации (/etc/fail2ban/jail.local)..."
+  echo -e "$MSG_INSTALL_CONFIG"
   cat << 'EOF' > /etc/fail2ban/jail.local
 [DEFAULT]
 bantime = 1d
@@ -71,11 +200,11 @@ filter = sshd
 backend = systemd
 EOF
 
-  echo -e "    Запуск и включение автозагрузки fail2ban..."
+  echo -e "$MSG_INSTALL_START_SVC"
   systemctl daemon-reload >/dev/null 2>&1
   systemctl enable fail2ban --now >/dev/null 2>&1
 
-  echo -e "${GREEN}${BOLD}✓ Fail2ban успешно установлен и настроен!${NC}"
+  echo -e "${GREEN}${BOLD}$MSG_INSTALL_OK${NC}"
   sleep 2
 }
 
@@ -83,7 +212,6 @@ EOF
 if ! command -v fail2ban-client &> /dev/null; then
   install_fail2ban
 fi
-
 
 get_ip_info() {
   local ip=$1
@@ -97,8 +225,8 @@ get_ip_info() {
     local res=$(curl -s --max-time 2 "http://ip-api.com/json/$ip")
     local country=$(echo "$res" | grep -o '"country":"[^"]*' | cut -d'"' -f4)
     local org=$(echo "$res" | grep -o '"org":"[^"]*' | cut -d'"' -f4)
-    [ -z "$country" ] && country="Unknown"
-    [ -z "$org" ] && org="Unknown"
+    [ -z "$country" ] && country="$MSG_UNKNOWN"
+    [ -z "$org" ] && org="$MSG_UNKNOWN"
     echo "$country | $org"
   fi
 }
@@ -106,29 +234,29 @@ get_ip_info() {
 show_header() {
   clear
   echo -e "${GRAY}================================================================${NC}"
-  echo -e "  ${BOLD}${GREEN}🛡️ FAIL2BAN INTERACTIVE TUI DASHBOARD${NC}  "
-  echo -e "  Сервер: ${CYAN}$(hostname)${NC} | Время: ${YELLOW}$(date '+%Y-%m-%d %H:%M:%S')${NC}"
+  echo -e "  ${BOLD}${GREEN}$MSG_TITLE${NC}  "
+  echo -e "  $MSG_HOST: ${CYAN}$(hostname)${NC} | $MSG_TIME: ${YELLOW}$(date '+%Y-%m-%d %H:%M:%S')${NC}"
   echo -e "${GRAY}================================================================${NC}"
 }
 
 show_status() {
   show_header
-  echo -e "\n${BOLD}${WHITE}[+] Статус службы Fail2ban:${NC}"
+  echo -e "\n${BOLD}${WHITE}$MSG_STATUS_TITLE${NC}"
   local service_status=$(systemctl is-active fail2ban)
   if [ "$service_status" = "active" ]; then
-    echo -e "    Статус: ${GREEN}${BOLD}ACTIVE (Запущена)${NC}"
+    echo -e "    $MSG_STATUS_ACTIVE"
   else
-    echo -e "    Статус: ${RED}${BOLD}INACTIVE (Остановлена)${NC}"
+    echo -e "    $MSG_STATUS_INACTIVE"
   fi
   
   # List Jails
   local jails=$(fail2ban-client status | grep "Jail list:" | sed 's/`- Jail list:\t//' | tr -d ',')
-  echo -e "\n${BOLD}${WHITE}[+] Активные Jails:${NC}"
+  echo -e "\n${BOLD}${WHITE}$MSG_ACTIVE_JAILS${NC}"
   for jail in $jails; do
     local stats=$(fail2ban-client status "$jail")
     local currently_banned=$(echo "$stats" | grep "Currently banned:" | awk '{print $4}')
     local total_banned=$(echo "$stats" | grep "Total banned:" | awk '{print $4}')
-    echo -e "    • ${BOLD}${CYAN}$jail${NC} (Забанено сейчас: ${YELLOW}$currently_banned${NC} | Всего банов: ${GRAY}$total_banned${NC})"
+    echo -e "    • ${BOLD}${CYAN}$jail${NC} ($MSG_JAIL_BANNED: ${YELLOW}$currently_banned${NC} | $MSG_JAIL_TOTAL: ${GRAY}$total_banned${NC})"
   done
 }
 
@@ -136,7 +264,7 @@ manage_jail() {
   local jail=$1
   while true; do
     show_header
-    echo -e "\n${BOLD}${WHITE}Управление Jail: ${CYAN}$jail${NC}"
+    echo -e "\n${BOLD}${WHITE}$MSG_MANAGE_JAIL: ${CYAN}$jail${NC}"
     echo -e "${GRAY}----------------------------------------------------------------${NC}"
     
     local stats=$(fail2ban-client status "$jail")
@@ -145,48 +273,49 @@ manage_jail() {
     local currently_banned=$(echo "$stats" | grep "Currently banned:" | awk '{print $4}')
     local total_banned=$(echo "$stats" | grep "Total banned:" | awk '{print $4}')
     
-    echo -e "    Ошибок входа (сейчас): ${YELLOW}$currently_failed${NC} | Всего ошибок: ${GRAY}$total_failed${NC}"
-    echo -e "    Забанено сейчас:       ${RED}${BOLD}$currently_banned${NC} | Всего банов:   ${GRAY}$total_banned${NC}"
+    echo -e "    $MSG_FAILED_NOW: ${YELLOW}$currently_failed${NC} | $MSG_FAILED_TOTAL: ${GRAY}$total_failed${NC}"
+    echo -e "    $MSG_JAIL_BANNED:       ${RED}${BOLD}$currently_banned${NC} | $MSG_JAIL_TOTAL:   ${GRAY}$total_banned${NC}"
     echo -e "${GRAY}----------------------------------------------------------------${NC}"
     
-    echo -e "\n${BOLD}${WHITE}[+] Список забаненных IP и информация о них:${NC}"
+    echo -e "\n${BOLD}${WHITE}$MSG_BANNED_IP_LIST${NC}"
     local ips=$(echo "$stats" | grep "Banned IP list:" | sed 's/`- Banned IP list:\t//' | sed 's/|  |- Banned IP list:\t//')
     if [ -z "$ips" ]; then
-      echo -e "    ${GRAY}Список пуст (активных банов нет)${NC}"
+      echo -e "    ${GRAY}$MSG_BANNED_EMPTY${NC}"
     else
-      # Print header for table
-      printf "    %-18s | %-15s | %-25s\n" "IP Адрес" "Страна" "Провайдер/Организация"
+      # Print header for table (colors defined inside format string, NOT in variable values)
+      printf "    %-18s | %-15s | %-25s\n" "$MSG_COL_IP" "$MSG_COL_COUNTRY" "$MSG_COL_ORG"
       printf "    %-18s+%-17s+%-25s\n" "------------------" "-----------------" "-------------------------"
       for ip in $ips; do
         local ip_info=$(get_ip_info "$ip")
         local country=$(echo "$ip_info" | cut -d'|' -f1 | xargs)
         local org=$(echo "$ip_info" | cut -d'|' -f2 | xargs)
-        printf "    %-18s | %-15s | %-25s\n" "${RED}$ip${NC}" "$country" "${GRAY}$org${NC}"
+        # Apply ANSI colors in format string itself so column sizes align correctly
+        printf "    ${RED}%-18s${NC} | %-15s | ${GRAY}%-25s${NC}\n" "$ip" "$country" "$org"
       done
     fi
     echo -e "${GRAY}----------------------------------------------------------------${NC}"
     
-    echo -e "\n${BOLD}${WHITE}Доступные действия:${NC}"
-    echo -e "    ${GREEN}1.${NC} Разбанить IP адрес (Unban)"
-    echo -e "    ${GREEN}2.${NC} Забанить IP адрес вручную (Ban)"
-    echo -e "    ${GREEN}3.${NC} Назад в главное меню"
+    echo -e "\n${BOLD}${WHITE}$MSG_ACTIONS${NC}"
+    echo -e "    ${GREEN}1.${NC} $MSG_ACTION_UNBAN"
+    echo -e "    ${GREEN}2.${NC} $MSG_ACTION_BAN"
+    echo -e "    ${GREEN}3.${NC} $MSG_ACTION_BACK"
     echo ""
-    read -rp "Выберите действие [1-3]: " action_choice
+    read -rp "1-3: " action_choice
     
     case $action_choice in
       1)
-        read -rp "Введите IP для разбана: " unban_ip
+        read -rp "$MSG_ENTER_UNBAN_IP" unban_ip
         if [ -n "$unban_ip" ]; then
           local res=$(fail2ban-client set "$jail" unbanip "$unban_ip")
-          echo -e "${GREEN}Результат:${NC} $res"
+          echo -e "${GREEN}$MSG_RESULT:${NC} $res"
           sleep 2
         fi
         ;;
       2)
-        read -rp "Введите IP для бана: " ban_ip
+        read -rp "$MSG_ENTER_BAN_IP" ban_ip
         if [ -n "$ban_ip" ]; then
           local res=$(fail2ban-client set "$jail" banip "$ban_ip")
-          echo -e "${GREEN}Результат:${NC} $res"
+          echo -e "${GREEN}$MSG_RESULT:${NC} $res"
           sleep 2
         fi
         ;;
@@ -194,7 +323,7 @@ manage_jail() {
         break
         ;;
       *)
-        echo -e "${RED}Неверный выбор.${NC}"
+        echo -e "${RED}$MSG_INVALID_CHOICE${NC}"
         sleep 1
         ;;
     esac
@@ -203,40 +332,46 @@ manage_jail() {
 
 while true; do
   show_status
-  echo -e "\n${BOLD}${WHITE}Главное меню:${NC}"
+  echo -e "\n${BOLD}${WHITE}$MSG_MAIN_MENU${NC}"
   
   # Dynamic Jails Menu
   jails=$(fail2ban-client status | grep "Jail list:" | sed 's/`- Jail list:\t//' | tr -d ',')
   index=1
   jail_array=()
   for jail in $jails; do
-    echo -e "    ${GREEN}$index.${NC} Подробная статистика и управление Jail: ${BOLD}${CYAN}$jail${NC}"
+    echo -e "    ${GREEN}$index.${NC} $MSG_JAIL_STATS: ${BOLD}${CYAN}$jail${NC}"
     jail_array+=("$jail")
     index=$((index + 1))
   done
   
   log_choice_idx=$index
-  echo -e "    ${GREEN}$log_choice_idx.${NC} Просмотр живых логов Fail2ban (/var/log/fail2ban.log)"
+  echo -e "    ${GREEN}$log_choice_idx.${NC} $MSG_VIEW_LOGS"
   
-  exit_choice_idx=$((index + 1))
-  echo -e "    ${GREEN}$exit_choice_idx.${NC} Выйти"
+  lang_choice_idx=$((index + 1))
+  echo -e "    ${GREEN}$lang_choice_idx.${NC} $MSG_CHANGE_LANG"
+  
+  exit_choice_idx=$((index + 2))
+  echo -e "    ${GREEN}$exit_choice_idx.${NC} $MSG_EXIT"
   echo ""
   
-  read -rp "Выберите пункт меню [1-$exit_choice_idx]: " main_choice
+  read -rp "1-$exit_choice_idx: " main_choice
   
   if [ "$main_choice" -eq "$exit_choice_idx" ] 2>/dev/null; then
-    echo -e "\nДо встречи! 🛡️"
+    echo -e "\n$MSG_GOODBYE"
     exit 0
+  elif [ "$main_choice" -eq "$lang_choice_idx" ] 2>/dev/null; then
+    rm -f "$LANG_CONF"
+    exec "$0" "$@"
   elif [ "$main_choice" -eq "$log_choice_idx" ] 2>/dev/null; then
     show_header
-    echo -e "\n${BOLD}${YELLOW}Логи Fail2ban (Для выхода нажмите Ctrl+C):${NC}"
+    echo -e "\n${BOLD}${YELLOW}$MSG_LOGS_TITLE${NC}"
     echo -e "${GRAY}----------------------------------------------------------------${NC}"
     tail -n 100 -f /var/log/fail2ban.log
   elif [ "$main_choice" -ge 1 ] 2>/dev/null && [ "$main_choice" -lt "$log_choice_idx" ] 2>/dev/null; then
     selected_jail=${jail_array[$((main_choice - 1))]}
     manage_jail "$selected_jail"
   else
-    echo -e "${RED}Неверный выбор.${NC}"
+    echo -e "${RED}$MSG_INVALID_CHOICE${NC}"
     sleep 1
   fi
 done
