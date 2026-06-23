@@ -6,7 +6,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/volosatichacker/fail2ban-tui?style=flat-glowing)](https://github.com/volosatichacker/fail2ban-tui/stargazers)
 [![Shell Script](https://img.shields.io/badge/shell-bash-4ea1a3?style=flat-glowing&logo=gnu-bash)](https://www.gnu.org/software/bash/)
 
-A lightweight, high-performance, and visually rich terminal-based dashboard (TUI) to monitor and manage **Fail2ban** directly from your command line.
+A lightweight, high-performance, and visually rich terminal-based dashboard (TUI) to monitor and manage **[Fail2ban](https://github.com/fail2ban/fail2ban)** (the official repository) directly from your command line.
 
 ---
 
@@ -19,7 +19,17 @@ A lightweight, high-performance, and visually rich terminal-based dashboard (TUI
   - **Ban IP**: Manually ban any malicious IP immediately.
   - **Unban IP**: Easily release IPs from the ban list.
 - 📜 **Log Viewer**: Live streaming of `/var/log/fail2ban.log`.
+- 🗣️ **Localization**: Full English and Russian language support.
 - 🎨 **Rich UI/Aesthetics**: Fully styled with curated ANSI color palettes.
+
+---
+
+## 🔥 Latest Updates (v1.2.0)
+
+*   🌐 **Multi-language TUI**: Interactive choice of English/Russian on the first launch, with the ability to switch languages directly from the dashboard menu.
+*   ⚙️ **Jail Settings Manager**: Dynamically adjust parameters like `bantime`, `findtime`, and `maxretry` in memory and write them persistently to `/etc/fail2ban/jail.local` using an automated INI configuration updater.
+*   📦 **Automated Dependency Installer**: If Fail2ban is missing on the system, the script prompts the user to auto-install it and configures a secure default jail settings profile.
+*   🎨 **Visual Alignment Fixes**: Fixed ANSI escape code evaluation in tables to ensure columns align perfectly.
 
 ---
 
@@ -28,7 +38,7 @@ A lightweight, high-performance, and visually rich terminal-based dashboard (TUI
 To install the dashboard on your server, simply run:
 
 ```bash
-sudo curl -fsSL -o /usr/local/bin/fail2ban https://raw.githubusercontent.com/volosatichacker/fail2ban-tui/main/fail2ban && sudo chmod +x /usr/local/bin/fail2ban
+sudo curl -fsSL -o /usr/local/bin/fail2ban https://raw.githubusercontent.com/volosatichacker/fail2ban-tui/main/fail2ban && sudo chmod +x /usr/local/bin/fail2ban && sudo fail2ban
 ```
 
 Once installed, open the dashboard from any terminal directory:
@@ -47,28 +57,6 @@ sudo fail2ban
 ### Dependencies
 - `curl` — for real-time Geo-IP API queries.
 - `jq` (Optional, recommended) — for clean JSON parsing (falls back to regex string manipulation if `jq` is absent).
-
----
-
-## 📋 Screenshot Preview
-
-```text
-================================================================
-  🛡️ FAIL2BAN INTERACTIVE TUI DASHBOARD  
-  Сервер: uhhit | Время: 2026-06-23 15:32:00
-================================================================
-
-[+] Статус службы Fail2ban:
-    Статус: ACTIVE (Запущена)
-
-[+] Активные Jails:
-    • sshd (Забанено сейчас: 6 | Всего банов: 70)
-
-Главное меню:
-    1. Подробная статистика и управление Jail: sshd
-    2. Просмотр живых логов Fail2ban (/var/log/fail2ban.log)
-    3. Выйти
-```
 
 ---
 
