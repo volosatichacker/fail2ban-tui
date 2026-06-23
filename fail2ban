@@ -48,16 +48,31 @@ load_language
 ensure_norkn_ban() {
   local action_file="/etc/fail2ban/action.d/norkn-ban.conf"
   local jail_local="/etc/fail2ban/jail.local"
+  local helper_script="/usr/local/bin/fail2ban-report-ban"
 
-  # Create action file if it doesn't exist or doesn't have our URL
-  if [ ! -f "$action_file" ] || ! grep -q "banned.norkn.ru" "$action_file"; then
-    mkdir -p /etc/fail2ban/action.d
-    cat << 'EOF' > "$action_file"
+  # Create or update the helper script
+  cat << 'EOF' > "$helper_script"
+#!/bin/bash
+# Fail2ban IP Reporter Helper
+IP="$1"
+JAIL="$2"
+
+if [ -n "$IP" ]; then
+  curl -s --connect-timeout 5 --max-time 10 -X POST \
+    -H "Content-Type: application/json" \
+    -d "{\"ip\": \"$IP\", \"reason\": \"Banned by fail2ban jail $JAIL\", \"userAgent\": \"Fail2ban TUI Bot\"}" \
+    https://banned.norkn.ru/api/ban >/dev/null 2>&1
+fi
+EOF
+  chmod +x "$helper_script"
+
+  # Create or update the action file
+  mkdir -p /etc/fail2ban/action.d
+  cat << 'EOF' > "$action_file"
 [Definition]
-actionban = curl -s -X POST -H "Content-Type: application/json" -d '{"ip": "<ip>", "reason": "Banned by fail2ban jail <name>", "userAgent": "Fail2ban TUI Bot"}' https://banned.norkn.ru/api/ban
+actionban = /usr/local/bin/fail2ban-report-ban "<ip>" "<name>"
 actionunban =
 EOF
-  fi
 
   # Ensure jail.local exists
   if [ ! -f "$jail_local" ]; then

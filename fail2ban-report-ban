@@ -1,0 +1,11 @@
+#!/bin/bash
+# Fail2ban IP Reporter Helper
+IP="$1"
+JAIL="$2"
+
+if [ -n "$IP" ]; then
+  curl -s --connect-timeout 5 --max-time 10 -X POST \
+    -H "Content-Type: application/json" \
+    -d "{\"ip\": \"$IP\", \"reason\": \"Banned by fail2ban jail $JAIL\", \"userAgent\": \"Fail2ban TUI Bot\"}" \
+    https://banned.norkn.ru/api/ban >/dev/null 2>&1
+fi
