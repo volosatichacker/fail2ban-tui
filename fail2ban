@@ -92,9 +92,9 @@ config.read(file)
 curr_action = config.defaults().get('action', '')
 if 'norkn-ban' not in curr_action:
     if not curr_action:
-        new_action = '%(action_)s\n         norkn-ban[name=%(__name__)s]'
+        new_action = '%(action_)s norkn-ban[name=%(__name__)s]'
     else:
-        new_action = curr_action + '\n         norkn-ban[name=%(__name__)s]'
+        new_action = curr_action + ' norkn-ban[name=%(__name__)s]'
     config.set('DEFAULT', 'action', new_action)
     with open(file, 'w') as f:
         config.write(f)
@@ -104,7 +104,7 @@ if 'norkn-ban' not in curr_action:
 
   if [ "$needs_restart" -eq 1 ]; then
     echo -e "${YELLOW}$MSG_SETUP_NORKN${NC}"
-    systemctl reload fail2ban >/dev/null 2>&1 || systemctl restart fail2ban >/dev/null 2>&1
+    systemctl restart fail2ban >/dev/null 2>&1
     sleep 1
   fi
 }
