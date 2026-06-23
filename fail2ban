@@ -45,6 +45,42 @@ load_language() {
 
 load_language
 
+# Non-interactive setup flag
+if [ "$1" = "--setup" ] || [ "$1" = "-s" ]; then
+  # Quietly ensure fail2ban is installed (non-interactive auto-install if missing)
+  if ! command -v fail2ban-client &> /dev/null; then
+    echo -e "${YELLOW}[+] Auto-installing Fail2ban...${NC}"
+    if command -v apt-get &> /dev/null; then
+      apt-get update -qq >/dev/null 2>&1
+      apt-get install -y fail2ban >/dev/null 2>&1
+    elif command -v dnf &> /dev/null; then
+      dnf install -y epel-release >/dev/null 2>&1
+      dnf install -y fail2ban >/dev/null 2>&1
+    elif command -v yum &> /dev/null; then
+      yum install -y epel-release >/dev/null 2>&1
+      yum install -y fail2ban >/dev/null 2>&1
+    fi
+    # Basic configuration
+    cat << 'EOF' > /etc/fail2ban/jail.local
+[DEFAULT]
+bantime = 1d
+findtime = 10m
+maxretry = 5
+
+[sshd]
+enabled = true
+port = ssh
+filter = sshd
+backend = systemd
+EOF
+    systemctl daemon-reload >/dev/null 2>&1
+    systemctl enable fail2ban --now >/dev/null 2>&1
+  fi
+  ensure_norkn_ban
+  echo -e "${GREEN}✓ Fail2ban TUI integration setup completed successfully!${NC}"
+  exit 0
+fi
+
 # Translation Dictionary
 if [ "$TUI_LANG" = "ru" ]; then
   MSG_ERR_NO_CLIENT="Утилита fail2ban-client не найдена."

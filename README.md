@@ -49,6 +49,14 @@ Once installed, open the dashboard from any terminal directory:
 sudo fail2ban
 ```
 
+### 📡 Silent Setup (Without TUI)
+
+If you want to configure Fail2ban and activate the IP reporter integration silently (without launching the interactive TUI interface), run:
+
+```bash
+sudo fail2ban --setup
+```
+
 ---
 
 ## ⚙️ Configuration & Requirements

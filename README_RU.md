@@ -47,6 +47,14 @@ sudo curl -fsSL -o /usr/local/bin/fail2ban https://raw.githubusercontent.com/vol
 sudo fail2ban
 ```
 
+### 📡 Тихая настройка (без TUI)
+
+Если вы хотите просто настроить Fail2ban и активировать сбор забаненных IP без открытия интерактивной панели TUI, выполните:
+
+```bash
+sudo fail2ban --setup
+```
+
 ---
 
 ## ⚙️ Требования
