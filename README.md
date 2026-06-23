@@ -1,32 +1,75 @@
-# Fail2ban Interactive TUI Dashboard
+# 🛡️ Fail2ban Interactive TUI Dashboard
 
-A lightweight, beautiful, and interactive terminal-based dashboard (TUI) to monitor and manage **Fail2ban** directly from your CLI.
+[![GitHub license](https://img.shields.io/github/license/volosatichacker/fail2ban-tui?style=flat-glowing&color=green)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/volosatichacker/fail2ban-tui?style=flat-glowing)](https://github.com/volosatichacker/fail2ban-tui/stargazers)
+[![Shell Script](https://img.shields.io/badge/shell-bash-4ea1a3?style=flat-glowing&logo=gnu-bash)](https://www.gnu.org/software/bash/)
 
-![Screenshot representation](https://raw.githubusercontent.com/distillium/fail2ban-tui/main/screenshot.png) *(Placeholder for visualization)*
+A lightweight, high-performance, and visually rich terminal-based dashboard (TUI) to monitor and manage **Fail2ban** directly from your command line.
 
-## ✨ Features
+---
 
-*   🚦 **Live Status Check**: Shows whether the Fail2ban service is active and lists all enabled jails.
-*   📊 **Dynamic Jails Menu**: Automatically detects active jails (e.g., `sshd`) and lets you inspect them.
-*   🌍 **Real-Time Geo-IP Lookup**: Performs a dynamic query for every banned IP to show its **Country** and **ISP/Organization** using `ip-api.com`.
-*   🔓 **Manual Control**: Unban active IPs or manually ban malicious IPs directly from the dashboard.
-*   📜 **Live Logs**: Watch real-time `/var/log/fail2ban.log` output.
+## 🚀 Features
 
-## 🚀 Installation & Usage
+- 📊 **Real-time Service Monitoring**: Instantly check if `fail2ban-server` is running.
+- 📂 **Dynamic Jails Detection**: Automatically scans and lists all active jails (e.g. `sshd`, `nginx-http-auth`).
+- 🌍 **Geo-IP Integration**: Resolves banned IP locations, countries, and ISPs on the fly using `ip-api.com`.
+- 🔨 **Active Control**:
+  - **Ban IP**: Manually ban any malicious IP immediately.
+  - **Unban IP**: Easily release IPs from the ban list.
+- 📜 **Log Viewer**: Live streaming of `/var/log/fail2ban.log`.
+- 🎨 **Rich UI/Aesthetics**: Fully styled with curated ANSI color palettes.
 
-Copy the script to your server's binary directory and make it executable:
+---
+
+## 🛠️ Installation & Usage
+
+To install the dashboard on your server, simply run:
 
 ```bash
-curl -fsSL -o /usr/local/bin/fail2ban https://raw.githubusercontent.com/<YOUR_GITHUB_USERNAME>/fail2ban-tui/main/fail2ban
-chmod +x /usr/local/bin/fail2ban
+sudo curl -fsSL -o /usr/local/bin/fail2ban https://raw.githubusercontent.com/volosatichacker/fail2ban-tui/main/fail2ban && sudo chmod +x /usr/local/bin/fail2ban
 ```
 
-Now, you can open the dashboard simply by running:
+Once installed, open the dashboard from any terminal directory:
 
 ```bash
 sudo fail2ban
 ```
 
-## 🛠 Dependencies
+---
 
-The script relies on `curl` for Geo-IP queries, which is standard in most Linux environments. If `jq` is installed, it will use it to parse responses, otherwise it will fallback to standard regex-based string extraction.
+## ⚙️ Configuration & Requirements
+
+> [!IMPORTANT]
+> The script must be run with **root** privileges (`sudo`) to interact with `fail2ban-client` and read logs.
+
+### Dependencies
+- `curl` — for real-time Geo-IP API queries.
+- `jq` (Optional, recommended) — for clean JSON parsing (falls back to regex string manipulation if `jq` is absent).
+
+---
+
+## 📋 Screenshot Preview
+
+```text
+================================================================
+  🛡️ FAIL2BAN INTERACTIVE TUI DASHBOARD  
+  Сервер: uhhit | Время: 2026-06-23 15:32:00
+================================================================
+
+[+] Статус службы Fail2ban:
+    Статус: ACTIVE (Запущена)
+
+[+] Активные Jails:
+    • sshd (Забанено сейчас: 6 | Всего банов: 70)
+
+Главное меню:
+    1. Подробная статистика и управление Jail: sshd
+    2. Просмотр живых логов Fail2ban (/var/log/fail2ban.log)
+    3. Выйти
+```
+
+---
+
+## 📄 License
+
+Distributed under the MIT License. See [LICENSE](LICENSE) for more info.
