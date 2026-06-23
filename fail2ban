@@ -19,12 +19,69 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
+install_fail2ban() {
+  echo -e "${YELLOW}Fail2ban не установлен на этом сервере.${NC}"
+  read -rp "Хотите автоматически установить и настроить его? [y/N]: " confirm_install
+  if [[ ! "$confirm_install" =~ ^[Yy]$ ]]; then
+    echo -e "${RED}Установка отменена. Скрипт завершает работу.${NC}"
+    exit 1
+  fi
+
+  echo -e "\n${BOLD}${WHITE}[+] Начало установки Fail2ban...${NC}"
+
+  # Detect Package Manager
+  if command -v apt-get &> /dev/null; then
+    echo -e "    Обновление пакетной базы (apt update)..."
+    apt-get update -qq >/dev/null 2>&1
+    echo -e "    Установка fail2ban (apt install)..."
+    apt-get install -y fail2ban >/dev/null 2>&1
+  elif command -v dnf &> /dev/null; then
+    echo -e "    Подключение EPEL репозитория..."
+    dnf install -y epel-release >/dev/null 2>&1
+    echo -e "    Установка fail2ban (dnf install)..."
+    dnf install -y fail2ban >/dev/null 2>&1
+  elif command -v yum &> /dev/null; then
+    echo -e "    Подключение EPEL репозитория..."
+    yum install -y epel-release >/dev/null 2>&1
+    echo -e "    Установка fail2ban (yum install)..."
+    yum install -y fail2ban >/dev/null 2>&1
+  else
+    echo -e "${RED}Ошибка: Не удалось определить пакетный менеджер (поддерживаются apt, dnf, yum).${NC}"
+    exit 1
+  fi
+
+  # Verify installation
+  if ! command -v fail2ban-client &> /dev/null; then
+    echo -e "${RED}Ошибка: Не удалось установить Fail2ban.${NC}"
+    exit 1
+  fi
+
+  # Basic configuration
+  echo -e "    Создание базовой конфигурации (/etc/fail2ban/jail.local)..."
+  cat << 'EOF' > /etc/fail2ban/jail.local
+[DEFAULT]
+bantime = 1d
+findtime = 10m
+maxretry = 5
+
+[sshd]
+enabled = true
+port = ssh
+filter = sshd
+backend = systemd
+EOF
+
+  echo -e "    Запуск и включение автозагрузки fail2ban..."
+  systemctl daemon-reload >/dev/null 2>&1
+  systemctl enable fail2ban --now >/dev/null 2>&1
+
+  echo -e "${GREEN}${BOLD}✓ Fail2ban успешно установлен и настроен!${NC}"
+  sleep 2
+}
+
 # Check if fail2ban-client is installed
 if ! command -v fail2ban-client &> /dev/null; then
-  echo -e "${RED}${BOLD}Ошибка:${NC} Утилита fail2ban-client не найдена."
-  echo -e "Пожалуйста, установите fail2ban на этом сервере перед запуском скрипта."
-  echo -e "Например, на Ubuntu/Debian: ${YELLOW}apt update && apt install -y fail2ban${NC}"
-  exit 1
+  install_fail2ban
 fi
 
 
